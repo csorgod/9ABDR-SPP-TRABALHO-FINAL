@@ -26,7 +26,7 @@ A ingestão vai ler os **dados em csv**, simulando arquivos chegando numa pasta 
 
 ## Como rodar
 
-O pipeline está no `stream_pipeline_nyc_taxi.ipynb`. É só importar no Databricks e rodar todas as células, ele mesmo detecta que está lá e ajusta os caminhos pra DBFS. Se o dataset real não estiver em `data/raw`, o notebook baixa uma amostra automaticamente (ver seção "Como funciona?" abaixo).
+O pipeline está no `stream_pipeline_nyc_taxi.ipynb`. É só importar no Databricks e rodar todas as células, ele mesmo detecta que está lá e ajusta os caminhos pra usar o disco local do cluster (`/tmp`), evitando o DBFS, que em vários workspaces novos (principalmente o Free Edition) vem com o root público desabilitado. Se o dataset real não estiver em `data/raw`, o notebook baixa uma amostra automaticamente (ver seção "Como funciona?" abaixo).
 
 Local (fora do Databricks) também funciona, com `pip install -r requirements.txt`, mas só testamos rodando em Linux/Mac/WSL. No Windows puro o Spark local esbarra num problema conhecido do Hadoop (precisa do `winutils.exe` e da variável `HADOOP_HOME` configurados), então recomendamos rodar via Databricks mesmo, que é a plataforma que escolhemos pra entrega.
 
@@ -35,7 +35,7 @@ Local (fora do Databricks) também funciona, com `pip install -r requirements.tx
 Passo a passo do que o notebook faz, na ordem que ele roda:
 
 1. **Setup**: confere se o pyspark instalado é a versão 3.5.x (compatível com Java 8/11/17). Se estiver com a 4.x, ou sem pyspark nenhum, reinstala a versão certa sozinho. No Databricks essa etapa nem roda, o cluster já vem pronto.
-2. **Ambiente**: detecta se está rodando no Databricks ou local e ajusta os caminhos (DBFS ou pasta local do projeto).
+2. **Ambiente**: detecta se está rodando no Databricks ou local e ajusta os caminhos. No Databricks usa o disco local do cluster (`/tmp`) em vez do DBFS, porque vários workspaces novos (principalmente o Free Edition) vêm com o DBFS root público desabilitado.
 3. **Sessão Spark**: cria a sessão (ou reaproveita a que o Databricks já deixa pronta).
 4. **Download dos dados**: baixa uma amostra da base do NYC TLC (primeira semana de janeiro/2023, aprox. 5000 corridas) via NYC Open Data, e salva em `data/raw/yellow_tripdata.csv`. Só baixa se o arquivo ainda não existir. **Se o download falhar aqui (por exemplo, sem internet no ambiente), rode `python scripts/baixar_dataset.py` manualmente antes de tentar de novo**, ou baixe pela URL que aparece na mensagem de erro.
 5. **Schema**: define as colunas e tipos esperados do csv na mão, porque o Spark exige um schema fixo em streaming (não dá pra inferir sozinho).

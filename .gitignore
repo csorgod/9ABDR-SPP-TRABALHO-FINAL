@@ -5,3 +5,5 @@ data/stream_source/*
 output/*
 !output/.gitkeep
 .ipynb_checkpoints/
+__pycache__/
+*.pyc

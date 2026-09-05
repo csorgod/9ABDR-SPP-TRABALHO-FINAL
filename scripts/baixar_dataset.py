@@ -23,7 +23,12 @@ DATASET_PARAMS = {
     "$where": "tpep_pickup_datetime between '2023-01-01T00:00:00' and '2023-01-07T23:59:59'",
     "$order": "tpep_pickup_datetime",
 }
-DESTINO_PADRAO = os.path.join("data", "raw", "yellow_tripdata.csv")
+
+# mesma logica de caminho do notebook: no Databricks usa o disco local do cluster
+# (/tmp), porque varios workspaces novos vem com o DBFS root publico desabilitado
+IS_DATABRICKS = "DATABRICKS_RUNTIME_VERSION" in os.environ
+BASE_PADRAO = "/tmp/nyc_taxi_streaming" if IS_DATABRICKS else "."
+DESTINO_PADRAO = os.path.join(BASE_PADRAO, "data", "raw", "yellow_tripdata.csv")
 
 
 def baixar_dataset(destino, base_url=DATASET_BASE_URL, params=None):
