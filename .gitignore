@@ -1,0 +1,7 @@
+data/raw/*
+!data/raw/.gitkeep
+data/stream_source/*
+!data/stream_source/.gitkeep
+output/*
+!output/.gitkeep
+.ipynb_checkpoints/
