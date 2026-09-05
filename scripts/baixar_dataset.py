@@ -37,5 +37,8 @@ def baixar_dataset(destino, base_url=DATASET_BASE_URL, params=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--destino", default=DESTINO_PADRAO, help="Caminho de destino do csv")
-    args = parser.parse_args()
+    # parse_known_args em vez de parse_args: se o script for rodado dentro de uma celula
+    # de notebook (Databricks/Jupyter), o sys.argv vem com os argumentos do proprio kernel
+    # (tipo "-f connection.json"), e isso ignora o que nao reconhece em vez de quebrar
+    args, _ = parser.parse_known_args()
     baixar_dataset(args.destino)
