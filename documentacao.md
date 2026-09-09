@@ -1,5 +1,15 @@
 # Documentação do Pipeline
 
+link do repositório: https://github.com/csorgod/9abdr-SPP-TRABALHO-FINAL
+
+Membros do Grupo:
+* Guilherme Csorgo Henriques: 370073
+* Karen Luzia Vitório Martins: 370096
+* Ludmila Rocha Silva: 372484
+* Thiago Guilherme: 375344
+
+---
+
 Trabalho final de Stream Processing Pipelines. Construímos um pipeline de streaming com Apache Spark Structured Streaming, rodando no Databricks, que ingere corridas de táxi de Nova York em CSV, valida os dados e grava o resultado em Parquet.
 
 Dataset: NYC Yellow Taxi Trip Data, baixado do NYC Open Data (a própria base da TLC, já que hoje eles só disponibilizam Parquet direto no site deles).
@@ -60,17 +70,17 @@ Por fim, lemos de volta o Parquet gravado, pra confirmar visualmente que o pipel
 
 Partindo do `df_validado` definido na Parte 1, agrupamos as corridas em **janelas de 1 hora** pelo horário de embarque (`tpep_pickup_datetime`), separadas por tipo de pagamento. Para cada janela calculamos: total de corridas, média de tarifa, média de distância percorrida e receita total (`total_amount`).
 
-O `withWatermark("tpep_pickup_datetime", "10 minutes")` diz ao Spark por quanto tempo uma janela ainda pode receber dados atrasados — depois desse prazo, a janela é fechada e o resultado é emitido. Esse mecanismo é obrigatório para usar `outputMode("append")` com agregações em streaming; sem ele o Spark não sabe quando uma janela está "completa" e não consegue garantir que não vai receber mais dados para ela.
+O `withWatermark("tpep_pickup_datetime", "10 minutes")` diz ao Spark por quanto tempo uma janela ainda pode receber dados atrasados. Depois desse prazo, a janela é fechada e o resultado é emitido. Esse mecanismo é obrigatório para usar `outputMode("append")` com agregações em streaming; sem ele o Spark não sabe quando uma janela está completa e não consegue garantir que não vai receber mais dados para ela.
 
 ### 2. Query de agregação
 
-A query usa `foreachBatch` com `outputMode("update")` e `trigger(availableNow=True)`. Optamos por `foreachBatch` em vez do `writeStream` direto com `format("parquet")` porque o modo `append` com watermark em dados históricos processados via `availableNow` não emite resultados — as janelas nunca fecham sem um micro-batch posterior para acionar a emissão. Com `foreachBatch` + `update`, cada micro-batch grava as janelas atualizadas imediatamente, sem depender do watermark. O resultado é gravado em `output/parquet_aggs`, com uma linha por combinação de (janela de 1 hora × tipo de pagamento).
+A query usa `foreachBatch` com `outputMode("update")` e `trigger(availableNow=True)`. Optamos por `foreachBatch` em vez do `writeStream` direto com `format("parquet")` porque o modo `append` com watermark em dados históricos processados via `availableNow` não emite resultados. As janelas nunca fecham sem um micro-batch posterior para acionar a emissão. Com `foreachBatch` + `update`, cada micro-batch grava as janelas atualizadas imediatamente, sem depender do watermark. O resultado é gravado em `output/parquet_aggs`.
 
 ![alt text](img/007.png)
 
 ### 3. Resultado das agregações
 
-Após a query terminar, lemos o Parquet de volta e exibimos as janelas ordenadas por horário e tipo de pagamento. Como o modo `update` pode gravar a mesma janela em mais de um batch, aplicamos uma deduplicação para ficar só com o estado final de cada janela. O número de linhas é muito menor do que a saída da Parte 1 — cada linha representa uma janela de 1 hora, não uma corrida individual.
+Após a query terminar, lemos o Parquet de volta e exibimos as janelas ordenadas por horário e tipo de pagamento. Como o modo `update` pode gravar a mesma janela em mais de um batch, aplicamos uma deduplicação para ficar só com o estado final de cada janela. O número de linhas é muito menor do que a saída da Parte 1: cada linha representa uma janela de 1 hora, não uma corrida individual.
 
 ![alt text](img/008.png)
 
@@ -80,8 +90,14 @@ Com o pipeline validado e funcionando, configuramos um **Job** no Databricks (em
 
 Nos prints abaixo é possível ver o job criado, o histórico de execuções e o agendamento configurado.
 
+### Job criado
+
 ![alt text](img/009.png)
 
+### Jobs executados
+
 ![alt text](img/010.png)
+
+### Job agendado
 
 ![alt text](img/011.png)
