@@ -54,6 +54,34 @@ Por fim, lemos de volta o Parquet gravado, pra confirmar visualmente que o pipel
 
 ![alt text](img/006.png)
 
-## Parte 2: Agregação, window e deploy
+## Parte 2: Agregação, Window e Deploy
 
-*(a preencher pela responsável por essa parte)*
+### 1. Agregação por janela de tempo (Window)
+
+Partindo do `df_validado` definido na Parte 1, agrupamos as corridas em **janelas de 1 hora** pelo horário de embarque (`tpep_pickup_datetime`), separadas por tipo de pagamento. Para cada janela calculamos: total de corridas, média de tarifa, média de distância percorrida e receita total (`total_amount`).
+
+O `withWatermark("tpep_pickup_datetime", "10 minutes")` diz ao Spark por quanto tempo uma janela ainda pode receber dados atrasados — depois desse prazo, a janela é fechada e o resultado é emitido. Esse mecanismo é obrigatório para usar `outputMode("append")` com agregações em streaming; sem ele o Spark não sabe quando uma janela está "completa" e não consegue garantir que não vai receber mais dados para ela.
+
+### 2. Query de agregação
+
+A query usa `foreachBatch` com `outputMode("update")` e `trigger(availableNow=True)`. Optamos por `foreachBatch` em vez do `writeStream` direto com `format("parquet")` porque o modo `append` com watermark em dados históricos processados via `availableNow` não emite resultados — as janelas nunca fecham sem um micro-batch posterior para acionar a emissão. Com `foreachBatch` + `update`, cada micro-batch grava as janelas atualizadas imediatamente, sem depender do watermark. O resultado é gravado em `output/parquet_aggs`, com uma linha por combinação de (janela de 1 hora × tipo de pagamento).
+
+![alt text](img/007.png)
+
+### 3. Resultado das agregações
+
+Após a query terminar, lemos o Parquet de volta e exibimos as janelas ordenadas por horário e tipo de pagamento. Como o modo `update` pode gravar a mesma janela em mais de um batch, aplicamos uma deduplicação para ficar só com o estado final de cada janela. O número de linhas é muito menor do que a saída da Parte 1 — cada linha representa uma janela de 1 hora, não uma corrida individual.
+
+![alt text](img/008.png)
+
+### 4. Deploy no Databricks
+
+Com o pipeline validado e funcionando, configuramos um **Job** no Databricks (em Jobs & Pipelines) para que ele rode automaticamente sem intervenção manual. O job aponta para este notebook, usa o mesmo cluster serverless dos testes e pode ser agendado com a frequência desejada. A célula de deploy imprime o caminho exato do notebook dentro do workspace, que foi usado para configurar o job.
+
+Nos prints abaixo é possível ver o job criado, o histórico de execuções e o agendamento configurado.
+
+![alt text](img/009.png)
+
+![alt text](img/010.png)
+
+![alt text](img/011.png)
